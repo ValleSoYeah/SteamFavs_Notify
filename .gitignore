@@ -1,3 +1,8 @@
+# Steam API and ID
+credentials.py
+my_favorites.csv
+
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -127,3 +132,4 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+

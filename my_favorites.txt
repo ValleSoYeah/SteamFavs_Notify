@@ -1,0 +1,5 @@
+friend;steamname;steamid;games
+Schniin;Pail;76561198059254917;Warhammer: Vermintide 2, Test
+Nils;Smallboy_Slin;76561197981033122;Deep Rock Galactic, SCUM
+Grady;[WC] Scott Sterling;76561198026715831;Sands of Salzaar
+Chrisse;chrisse286;76561198068931354;Dota 2

@@ -2,11 +2,12 @@ import numpy as np
 import pandas as pd
 from urllib.request import urlopen
 import json
-import time
+from time import localtime, strftime
+import requests
 
 def get_friend_IDs(steamid, APIkey):
-    getList_URL = f"http://api.steampowered.com/ISteamUser/GetFriendList/v0001/?key={APIkey}&steamid={steamid}&relationship=friend"
-    file = urlopen(getList_URL)
+    URL = f"http://api.steampowered.com/ISteamUser/GetFriendList/v0001/?key={APIkey}&steamid={steamid}&relationship=friend"
+    file = urlopen(URL)
     content = file.read().decode('utf-8')
     friendlist = json.loads(content)
     friendlist = pd.DataFrame(friendlist["friendslist"]["friends"])
@@ -20,8 +21,8 @@ def get_friend_names(friend_IDs, APIkey):
     for n, id in enumerate(friend_IDs):
         if n == 0 or (n+1)%10 == 0:
             print(f"{n+1} of {friend_IDs.shape[0]}")
-        getFriend_URL = f"http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key={APIkey}&steamids={id}"
-        file = urlopen(getFriend_URL)
+        URL = f"http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key={APIkey}&steamids={id}"
+        file = urlopen(URL)
         content = file.read().decode('utf-8')
         friendstatus = json.loads(content)
         try:
@@ -45,8 +46,8 @@ def check_fav_status(favs, APIkey):
     for n in range(favs.shape[0]):
         id= favs.iloc[n]["steamid"]
         games= [x.strip() for x in favs.iloc[n]["games"].split(",")]
-        getFriend_URL = f"http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key={APIkey}&steamids={id}"
-        file = urlopen(getFriend_URL)
+        URL = f"http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key={APIkey}&steamids={id}"
+        file = urlopen(URL)
         content = file.read().decode('utf-8')
         friendstatus = json.loads(content)
         try:
@@ -64,13 +65,13 @@ def check_fav_status(favs, APIkey):
 
 
 def check_for_change(hits, notify):
-    send = False
+    changed = False
     for entry in hits.keys():
         if notify[entry] != hits[entry]:
             notify[entry] = hits[entry]
             if notify[entry] != "":
-                send = True
-    return notify, send
+                changed = True
+    return notify, changed
 
 
 def check_loop(notify, favs, APIkey, sleep=10, iter=10):
@@ -81,8 +82,15 @@ def check_loop(notify, favs, APIkey, sleep=10, iter=10):
         if my_send == True:
             for i in notify.keys():
                 if notify[i] != "":
-                    print(f"{i} is playing {notify[i]}")
+                    return True, i, notify[i]
+                    
         else:
             print(".")
+            return False, i, notify[i]
         time.sleep(sleep)
         x +=1
+
+def send_message(message, bot_token, telegram_id):
+    url = f"https://api.telegram.org/bot{bot_token}/sendMessage?chat_id={telegram_id}&text={message}"
+    requests.get(url).json()
+    print(f"{strftime('%H:%M:%S', localtime())}: Just sent this message via Telegram: '{message}'")

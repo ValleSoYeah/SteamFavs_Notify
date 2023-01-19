@@ -1,6 +1,7 @@
 # Steam API and ID
 credentials.py
 my_favorites.csv
+SteamFavs_Notify_standalone.py
 
 
 # Byte-compiled / optimized / DLL files

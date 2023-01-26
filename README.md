@@ -3,7 +3,7 @@
 ## How to set up runs in Google Cloud Functions (free tier)
 ### Steam
 1.	[Get your SteamAPI-Key](https://steamcommunity.com/dev/apikey), you can use 127.0.0.1 as your domain.
-2.	Get the SteamIDs of your friends from their profile-URLs (17-digit number)
+2.	Get the SteamIDs of your friends from their profile-URLs [(SteamID64, 17-digit number)](http://steamrep.com/)
 
 ### Telegram
 1.	Create a Telegram-Bot
@@ -43,7 +43,7 @@
 ### Cloud Functions Setup
 1.	Create the Cloud Function
     - Cloud Functions => create function
-    - Region: us-central1
+    - Region: us-central1 (not all regions have free-tier bucket storage)
     - Trigger: your Pub/Sub topic
     - Memory: 512 MB, Max instances: 1
     - Reference the secrets as environment variables with these names

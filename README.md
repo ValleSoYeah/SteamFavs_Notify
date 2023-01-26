@@ -4,6 +4,7 @@
 ### Steam
 1.	[Get your SteamAPI-Key](https://steamcommunity.com/dev/apikey), you can use 127.0.0.1 as your domain.
 2.	Get the SteamIDs of your friends from their profile-URLs (17-digit number)
+
 ### Telegram
 1.	Create a Telegram-Bot
     - contact the botfather (https://telegram.me/botfather)
@@ -12,7 +13,6 @@
     -    message your new bot once via Telegram (this also authorizes him to send you messages)
     -   replace the bot token in [this URL](https://api.telegram.org/bot{your_bot_token}/getupdates) and note the 9-digit number behind “id”
 
-&nbsp;
 
 ### Google Cloud Project Setup
 1.	Setup a Google Cloud account and create a project with billing enabled
@@ -28,7 +28,6 @@
 5.	Also save your other credentials (SteamID, APIkey, bot_token, telegram_id) as secrets
 6.	Create a new Pub/Sub topic
 
-&nbsp;
 
 ### Google Sheets
 1.	Write your favs in a google sheets-document
@@ -40,7 +39,6 @@
 3.	Get your sheets ID from the URL *https://docs.google.com/spreadsheets/d/{sheets_id}/edit*
     - Save your sheets_id as a secret in Google Cloud Cloud 
 
-&nbsp;
 
 ### Cloud Functions Setup
 1.	Create the Cloud Function

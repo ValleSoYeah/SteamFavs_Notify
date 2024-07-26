@@ -39,10 +39,10 @@ def activate_fav_notify_sheets(event, context):
     my_bot_token = os.environ["my_bot_token"]
     my_telegram_id = os.environ["my_telegram_id"]
     my_telegram_group_id = os.environ["my_telegram_group_id"]
-    #nils_telegram_id = os.environ["nils_telegram_id"]
+    nils_telegram_id = os.environ["nils_telegram_id"]
     all_telegram_ids = {"Valle": my_telegram_id,
-                        "Gruppe": my_telegram_group_id
-                        #, "Nils": nils_telegram_id
+                        "Gruppe": my_telegram_group_id,
+                        "Nils": nils_telegram_id
                         }
     my_spreadsheet_id = os.environ["sheet_id"]
     serv_acc = eval(os.environ["appspot_service_acc"])
@@ -75,12 +75,12 @@ def activate_fav_notify_sheets(event, context):
         # reset chached state at first invocation of the day (after 18:00)
         if not var or datetime.now(pytz.timezone('Europe/Berlin')).strftime('%H:%M')[:4] in ["18:0","10:0"]:
             for i in range(my_favs.shape[0]):
-                my_notify[my_favs.iloc[i]["steamid"]]=["-", my_favs.iloc[i]["receiver"]]
+                my_notify[(my_favs.iloc[i]["steamid"], my_favs.iloc[i]["receiver"])]="-"
             if verbose > 0:
                 print("State dictionary was reset")
         else:
             for i in range(len(var)):
-                my_notify[var[i][0]] = [var[i][1], my_favs.iloc[i]["receiver"]]
+                my_notify[(var[i][0], my_favs.iloc[i]["receiver"])] = var[i][1]
             if verbose > 0:
                 print("Cached state imported from GSheets")
         if verbose > 1:
@@ -94,6 +94,7 @@ def activate_fav_notify_sheets(event, context):
         matches={}
         for n in range(favs.shape[0]):
             id= favs.iloc[n]["steamid"]
+            receiver= favs.iloc[n]["receiver"]
             fav_games= [x.strip() for x in favs.iloc[n]["games"].split(",")]
             URL = f"http://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?key={APIkey}&steamids={id}"
             file = urlopen(URL)
@@ -110,11 +111,11 @@ def activate_fav_notify_sheets(event, context):
                     if verbose > 1:
                         print("Currently playing:", curr_game)
                     if (curr_game in fav_games) or (fav_games == ["*"]): 
-                        matches[id] = curr_game
+                        matches[(id, recveiver)] = curr_game
                 except: 
                     if verbose > 1:
-                        print(f"{friend_name} is ot playing anything")
-                    matches[id] = "-"
+                        print(f"{friend_name} is not playing anything")
+                    matches[(id, recveiver)] = "-"
             except:
                 continue
         if verbose > 1:
@@ -128,9 +129,9 @@ def activate_fav_notify_sheets(event, context):
             if verbose > 1:
                 print("my_notify[entry]", entry, my_notify[entry])
                 print("matches[entry]", matches[entry])
-            if my_notify[entry][0] != matches[entry]:
-                my_notify[entry][0] = matches[entry]
-                if my_notify[entry][0] != "-":
+            if my_notify[entry] != matches[entry]:
+                my_notify[entry] = matches[entry]
+                if my_notify[entry] != "-":
                     has_changed = True
         return my_notify, has_changed
 
@@ -139,7 +140,8 @@ def activate_fav_notify_sheets(event, context):
         url = f"https://api.telegram.org/bot{bot_token}/sendMessage?chat_id={telegram_id}&text={message}"
         requests.get(url).json()
         if verbose > 0:
-            print(f"{datetime.now(pytz.timezone('Europe/Berlin')).strftime('%H:%M:%S')}: Just sent this message via Telegram: '{message}'")
+            reverse_dict = {v: k for k, v in all_telegram_ids.items()}
+            print(f"{datetime.now(pytz.timezone('Europe/Berlin')).strftime('%H:%M:%S')}: Just sent this message to {reverse_dict[telegram_id]}: '{message}'")
 
      
     #Run code
@@ -149,9 +151,9 @@ def activate_fav_notify_sheets(event, context):
     my_notify, has_changed = check_for_change(matches, my_notify)
     if has_changed == True or verbose == 2:
         for i in my_notify.keys():
-            if my_notify[i][0] != "-" or verbose == 2:
-                message = f"{id_name_map[i]} is now playing {my_notify[i][0]}!"
-                send_message(message, my_bot_token, all_telegram_ids[my_notify[i][1]])
+            if my_notify[i] != "-" or verbose == 2:
+                message = f"{id_name_map[i[0]]} is now playing {my_notify[i]}!"
+                send_message(message, my_bot_token, all_telegram_ids[i[1]])
 
                 
     else:
@@ -161,6 +163,6 @@ def activate_fav_notify_sheets(event, context):
     #cache current state
     var=[]
     for key in my_notify:
-        var.append([key, my_notify[key][0]])
+        var.append([key[0], my_notify[key]])
     data = {'values' : var}
     service.spreadsheets().values().update(spreadsheetId=my_spreadsheet_id, body=data, range="cache!"+RANGE, valueInputOption='USER_ENTERED').execute()

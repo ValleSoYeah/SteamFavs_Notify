@@ -31,7 +31,7 @@ def activate_fav_notify_sheets(event, context):
     print(f"Script version number {os.environ['K_REVISION']}")
 
     SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
-    RANGE = 'A1:D100'
+    RANGE = 'A1:E100'
 
     # Loading environment variables.
     my_SteamID = os.environ["my_SteamID"]
@@ -39,48 +39,54 @@ def activate_fav_notify_sheets(event, context):
     my_bot_token = os.environ["my_bot_token"]
     my_telegram_id = os.environ["my_telegram_id"]
     my_telegram_group_id = os.environ["my_telegram_group_id"]
+    #nils_telegram_id = os.environ["nils_telegram_id"]
+    all_telegram_ids = {"Valle": my_telegram_id,
+                        "Gruppe": my_telegram_group_id
+                        #, "Nils": nils_telegram_id
+                        }
     my_spreadsheet_id = os.environ["sheet_id"]
     serv_acc = eval(os.environ["appspot_service_acc"])
+    service = build('sheets', 'v4', credentials=service_account.Credentials.from_service_account_info(serv_acc, scopes=SCOPES))
 
+    def get_favs():
+        #loading favlist from sheet
+        #reducing memory-usage by overwriting same var in each step
+        var = service.spreadsheets().values().get(spreadsheetId=my_spreadsheet_id, range="my_favs!"+RANGE).execute()
+        var = var.get('values', [])
+        if not var:
+            if verbose > 0:
+                print('No data found.')
+            return
+        else:    
+            my_favs= pd.DataFrame(var[1:], columns=var[0])
+            if verbose > 0:
+                print('Favs imported from GSheets!', my_favs)
+        return my_favs
 
-    
-    #loading favlist from sheet
-    #reducing memory-usage by overwriting same var in each step
-    var = service_account.Credentials.from_service_account_info(serv_acc, scopes=SCOPES)
-    service = build('sheets', 'v4', credentials=var)
-    var = service.spreadsheets().values().get(spreadsheetId=my_spreadsheet_id, range="my_favs!"+RANGE).execute()
-    var = var.get('values', [])
-    if not var:
-        if verbose > 0:
-            print('No data found.')
-        return
-    else:    
-        my_favs= pd.DataFrame(var[1:], columns=var[0])
-        if verbose > 0:
-            print('Favs imported from GSheets!', my_favs)
-
-    #Loading last state of running games from chached sheet
-    var = service.spreadsheets().values().get(spreadsheetId=my_spreadsheet_id,range="cache!"+RANGE).execute()
-    var = var.get('values', [])
-    print(var)
-    my_notify = {}
-    id_name_map = {}
-    for i in range(len(var)):
-            id_name_map[my_favs.iloc[i]["steamid"]] = my_favs.iloc[i]["friend"]
-    # reset chached state at first invocation of the day (after 18:00)
-    if not var or datetime.now(pytz.timezone('Europe/Berlin')).strftime('%H:%M')[:4] in ["18:0","10:0"]:
-        for i in range(my_favs.shape[0]):
-            my_notify[my_favs.iloc[i]["steamid"]]="-"
-        if verbose > 0:
-            print("State dictionary was reset")
-    else:
+    def get_state():
+        #Loading last state of running games from chached sheet
+        var = service.spreadsheets().values().get(spreadsheetId=my_spreadsheet_id,range="cache!"+RANGE).execute()
+        var = var.get('values', [])
+        print(var)
+        my_notify = {}
+        id_name_map = {}
         for i in range(len(var)):
-            my_notify[var[i][0]] = var[i][1]
-        if verbose > 0:
-            print("Cached state imported from GSheets")
-    if verbose > 1:
-        print("my_notify: ", my_notify)
-        print("id_name_map: ", id_name_map)
+                id_name_map[my_favs.iloc[i]["steamid"]] = my_favs.iloc[i]["friend"]
+        # reset chached state at first invocation of the day (after 18:00)
+        if not var or datetime.now(pytz.timezone('Europe/Berlin')).strftime('%H:%M')[:4] in ["18:0","10:0"]:
+            for i in range(my_favs.shape[0]):
+                my_notify[my_favs.iloc[i]["steamid"]]=["-", my_favs.iloc[i]["receiver"]]
+            if verbose > 0:
+                print("State dictionary was reset")
+        else:
+            for i in range(len(var)):
+                my_notify[var[i][0]] = [var[i][1], my_favs.iloc[i]["receiver"]]
+            if verbose > 0:
+                print("Cached state imported from GSheets")
+        if verbose > 1:
+            print("my_notify: ", my_notify)
+            print("id_name_map: ", id_name_map)
+        return my_notify, id_name_map
     
 
     def check_for_matches(favs, APIkey):
@@ -115,16 +121,16 @@ def activate_fav_notify_sheets(event, context):
             print("Matches: ", matches)
         return matches 
 
-    def check_for_change(matches):
+    def check_for_change(matches, my_notify):
         """Checks whether any detected matches are new or reoccuring"""
         has_changed = False
         for entry in matches.keys():
             if verbose > 1:
                 print("my_notify[entry]", entry, my_notify[entry])
                 print("matches[entry]", matches[entry])
-            if my_notify[entry] != matches[entry]:
-                my_notify[entry] = matches[entry]
-                if my_notify[entry] != "-":
+            if my_notify[entry][0] != matches[entry]:
+                my_notify[entry][0] = matches[entry]
+                if my_notify[entry][0] != "-":
                     has_changed = True
         return my_notify, has_changed
 
@@ -137,14 +143,17 @@ def activate_fav_notify_sheets(event, context):
 
      
     #Run code
+    my_favs = get_favs()
+    my_notify, id_name_map = get_state()
     matches = check_for_matches(my_favs, my_APIkey)
-    my_notify, has_changed = check_for_change(matches)
-    if has_changed == True:
+    my_notify, has_changed = check_for_change(matches, my_notify)
+    if has_changed == True or verbose == 2:
         for i in my_notify.keys():
-            if my_notify[i] != "-":
-                message = f"{id_name_map[i]} is now playing {my_notify[i]}!"
-                send_message(message, my_bot_token, my_telegram_id)
-                send_message(message, my_bot_token, my_telegram_group_id)
+            if my_notify[i][0] != "-" or verbose == 2:
+                message = f"{id_name_map[i]} is now playing {my_notify[i][0]}!"
+                send_message(message, my_bot_token, all_telegram_ids[my_notify[i][1]])
+
+                
     else:
         if verbose > 0:
             print(f"{datetime.now(pytz.timezone('Europe/Berlin')).strftime('%H:%M:%S')} Nothing to report")
@@ -152,6 +161,6 @@ def activate_fav_notify_sheets(event, context):
     #cache current state
     var=[]
     for key in my_notify:
-        var.append([key, my_notify[key]])
+        var.append([key, my_notify[key][0]])
     data = {'values' : var}
     service.spreadsheets().values().update(spreadsheetId=my_spreadsheet_id, body=data, range="cache!"+RANGE, valueInputOption='USER_ENTERED').execute()

@@ -25,7 +25,7 @@
 4.	Save the key as a secret
     - Security => Secret manager => Create Secret 
     - Paste content of the JSON file in the “value” field
-5.	Also save your other credentials (SteamID, APIkey, bot_token, telegram_id) as secrets
+5.	Also save your other credentials (SteamID, APIkey, bot_token, telegram_id) as secrets and make sure the appspot service account has "Secret Accessor" permissions.
 6.	Create a new Pub/Sub topic
 
 
@@ -47,7 +47,7 @@
     - Trigger: your Pub/Sub topic
     - Memory: 512 MB, Max instances: 1
     - Reference the secrets as environment variables with these names
-        - *my_SteamID, my_APIkey, my_bot_token, my_telegram_id, sheet_id, appspot_service_acc*
+        - *my_SteamID, my_APIkey, my_bot_token, my_telegram_id, sheet_id, appspot_service_acc, ...*
 2.	Deploy and test your function
     - **main.py:** paste from [*google-cloud-functions/SteamFavs_Notify_cloud.py*](https://github.com/ValleSoYeah/SteamFavs_Notify/blob/main/google-cloud-functions/SteamFavs_Notify_cloud.py)
     - **requirements.txt:** paste from [*google-cloud-functions/requirements.txt*](https://github.com/ValleSoYeah/SteamFavs_Notify/blob/main/google-cloud-functions/requirements.txt)

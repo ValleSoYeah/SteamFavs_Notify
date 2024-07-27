@@ -31,7 +31,7 @@
 
 ### Google Sheets
 1.	Write your favs in a google sheets-document
-    - organize in four columns: friend, steamname, steamid, games
+    - organize in five columns: friend, steamname, steamid, games, receiver
     - write multiple games for one friend in the same cells and separate with a comma
     - name the sheet “my_favs”
     - create a second sheet in the same document named “cache”

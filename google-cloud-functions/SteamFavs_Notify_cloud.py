@@ -111,11 +111,11 @@ def activate_fav_notify_sheets(event, context):
                     if verbose > 1:
                         print("Currently playing:", curr_game)
                     if (curr_game in fav_games) or (fav_games == ["*"]): 
-                        matches[(id, recveiver)] = curr_game
+                        matches[(id, receiver)] = curr_game
                 except: 
                     if verbose > 1:
                         print(f"{friend_name} is not playing anything")
-                    matches[(id, recveiver)] = "-"
+                    matches[(id, receiver)] = "-"
             except:
                 continue
         if verbose > 1:
